@@ -1,0 +1,27 @@
+{
+  "info": {
+    "_postman_id": "7815063b-22bc-4372-82b8-fbd7bd3da08d",
+    "name": "Blaze-Byte",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "New Request",
+          "id": "5c89bf15-d1c9-4d8e-9656-d77bc8f2db90",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "1bdabc68-d27a-4dba-8641-6a32a869ebbb"
+    }
+  ]
+}

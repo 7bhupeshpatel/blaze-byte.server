@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+// 1. Roles as requested
+enum Role {
+  SUPERADMIN
+  ADMIN
+  VISITOR
+  GUEST
+}
+
+// 2. User Model with metadata and account control
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  role          Role      @default(GUEST)
+  
+  // Account Status Fields
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  isValidTill   DateTime? // For temporary access or suspensions
+  
+  // OTP Logic
+  otp           String?
+  otpExpires    DateTime?
+  
+  // Industry grade tracking
+  metadata      Json?     @default("{}") // Store flexible cafe/gaming data here
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users") // Renames the table in Postgres to lowercase 'users'
+}
