@@ -7,6 +7,7 @@
         // "moduleResolution": "node",
         "types": ["node", "jest"],
         "outDir": "./dist",
+        "rootDir": "./src",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
@@ -29,6 +30,6 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true
     },
-    "include": ["src/**/*", "test/**/*", "prisma/**/*", "prisma.config.ts"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "coverage", "**/*.test.ts"]
 }
