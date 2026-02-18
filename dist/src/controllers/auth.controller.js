@@ -42,7 +42,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.login = exports.verifyOtp = exports.signup = void 0;
+exports.logout = exports.resetPasswordConfirm = exports.forgotPasswordRequest = exports.login = exports.verifyOtp = exports.signup = void 0;
 const AuthService = __importStar(require("../services/auth.service"));
 const signup = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -81,6 +81,26 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.login = login;
+const forgotPasswordRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield AuthService.requestPasswordReset(req.body.email);
+        res.status(200).json({ success: true, message: "OTP sent to your email." });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.forgotPasswordRequest = forgotPasswordRequest;
+const resetPasswordConfirm = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield AuthService.resetPassword(req.body);
+        res.status(200).json({ success: true, message: "Password updated successfully. Please login." });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.resetPasswordConfirm = resetPasswordConfirm;
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.status(200).json({ success: true, message: "Logged out successfully" });
 });

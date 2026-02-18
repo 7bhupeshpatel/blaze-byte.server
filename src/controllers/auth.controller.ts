@@ -38,6 +38,25 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
+// Forgot Password
+export const forgotPasswordRequest = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await AuthService.requestPasswordReset(req.body.email);
+    res.status(200).json({ success: true, message: "OTP sent to your email." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPasswordConfirm = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await AuthService.resetPassword(req.body);
+    res.status(200).json({ success: true, message: "Password updated successfully. Please login." });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const logout = async (req: Request, res: Response) => {
   // On client side, delete the JWT token from localStorage/cookies
   res.status(200).json({ success: true, message: "Logged out successfully" });

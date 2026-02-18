@@ -23,6 +23,19 @@ enum Role {
   GUEST
 }
 
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String   // e.g., "UPDATE_USER", "DELETE_USER", "BULK_PURGE"
+  targetId  String?  // The ID of the user being modified
+  details   String?  // JSON string of what was changed
+  createdAt DateTime @default(now())
+  
+  admin     User     @relation(fields: [adminId], references: [id])
+}
+
+
 // 2. User Model with metadata and account control
 model User {
   id            String    @id @default(uuid())
@@ -38,11 +51,76 @@ model User {
   // OTP Logic
   otp           String?
   otpExpires    DateTime?
+
+  // Reset password
+  resetOtp       String?
+  resetOtpExpires DateTime?
   
+  // Relations
+  companyId    String?   // Link to the workspace
+  company      Company?  @relation(fields: [companyId], references: [id])
+  
+  managedCompany Company? @relation("CompanyOwner") // If the user is an ADMIN
+  sales        Sale[]    // Track sales made by staff
+
   // Industry grade tracking
   metadata      Json?     @default("{}") // Store flexible cafe/gaming data here
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  auditLogs AuditLog[]
+
   @@map("users") // Renames the table in Postgres to lowercase 'users'
+}
+
+model Company {
+  id           String    @id @default(uuid())
+  name         String
+  ownerId      String    @unique
+  owner        User      @relation("CompanyOwner", fields: [ownerId], references: [id])
+  
+  staff        User[]    // Members of this workspace
+  products     Product[] // Menu items for this company
+  createdAt    DateTime  @default(now())
+}
+
+model Product {
+  id           String    @id @default(uuid())
+  name         String
+  price        Float
+  category     String?   @default("General")
+  stock        Int?      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  sales        SaleItem[]
+}
+
+model Sale {
+  id           String     @id @default(uuid())
+  staffId      String
+  staff        User       @relation(fields: [staffId], references: [id])
+  totalAmount  Float
+
+  subtotalAmount Float    @default(0)   // Amount BEFORE discount
+  discountPercent Float?      // e.g. 10
+  discountAmount Float?       // Calculated discount value
+
+  createdAt    DateTime   @default(now())
+  items        SaleItem[]
+
+  customerName  String?
+  customerPhone String?
+
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
 }

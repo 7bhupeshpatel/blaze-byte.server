@@ -1,17 +1,27 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prisma = void 0;
 const client_1 = require("@prisma/client");
+const adapter_pg_1 = require("@prisma/adapter-pg");
+const pg_1 = require("pg");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const globalForPrisma = global;
-const prismaConfig = {
-    datasources: {
-        db: {
-            url: process.env.DATABASE_URL,
-        },
-    },
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-};
-exports.prisma = globalForPrisma.prisma || new client_1.PrismaClient(prismaConfig);
+if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is missing in .env file");
+}
+const pool = new pg_1.Pool({
+    connectionString: process.env.DATABASE_URL
+});
+const adapter = new adapter_pg_1.PrismaPg(pool);
+exports.prisma = globalForPrisma.prisma ||
+    new client_1.PrismaClient({
+        adapter,
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    });
 if (process.env.NODE_ENV !== 'production')
     globalForPrisma.prisma = exports.prisma;
 exports.default = exports.prisma;

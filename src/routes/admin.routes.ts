@@ -1,15 +1,18 @@
-// src/routes/admin.routes.ts
 import { Router } from 'express';
-import { authorize } from '../middlewares/auth.middleware';
-import prisma from '../config/db.config'; // Assume you exported prisma instance here
+import * as adminCtrl from '../controllers/admin.controller';
+import { verifyToken } from '../middlewares/auth.middleware';
+import { authorize } from '../middlewares/role.middleware';
 
 const router = Router();
 
-router.patch('/approve-user', authorize(['SUPERADMIN']), async (req, res) => {
-  const { userId, role, validTill } = req.body;
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: { role, isValidTill: new Date(validTill) }
-  });
-  res.json(updatedUser);
-});
+// All routes here require at least ADMIN, but most are SUPERADMIN restricted
+router.use(verifyToken);
+
+router.get('/stats', authorize(['ADMIN', 'SUPERADMIN']), adminCtrl.fetchStats);
+router.get('/users', authorize(['ADMIN', 'SUPERADMIN']), adminCtrl.fetchAllUsers);
+router.get('/audit-logs', authorize(['SUPERADMIN']), adminCtrl.fetchAuditLogs);
+// Destructive or Sensitive actions - SUPERADMIN ONLY
+router.patch('/users/:id', authorize(['SUPERADMIN']), adminCtrl.modifyUser);
+router.delete('/users/bulk', authorize(['SUPERADMIN']), adminCtrl.bulkDelete);
+
+export default router;

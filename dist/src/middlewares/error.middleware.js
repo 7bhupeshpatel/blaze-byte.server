@@ -12,6 +12,7 @@ class AppError extends Error {
 }
 exports.AppError = AppError;
 const errorHandler = (err, req, res, next) => {
+    console.error("DEBUG ERROR:", err);
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
     if (process.env.NODE_ENV === 'development') {
@@ -33,7 +34,8 @@ const errorHandler = (err, req, res, next) => {
             console.error('ERROR 💥', err);
             res.status(500).json({
                 status: 'error',
-                message: 'Something went very wrong!',
+                message: err.message,
+                stack: err.stack
             });
         }
     }

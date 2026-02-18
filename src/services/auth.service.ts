@@ -57,3 +57,44 @@ export const loginUser = async (data: any) => {
 
   return { token, user: { id: user.id, email: user.email, role: user.role } };
 };
+
+
+// Add these to your existing auth.service.ts
+
+export const requestPasswordReset = async (email: string) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new Error("If an account exists with this email, an OTP has been sent.");
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+  await prisma.user.update({
+    where: { email },
+    data: { otp, otpExpires }
+  });
+
+  await sendEmail(email, "Password Reset OTP", `Your password reset code is: ${otp}`);
+  return true;
+};
+
+export const resetPassword = async (data: any) => {
+  const { email, otp, newPassword } = data;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user || user.otp !== otp || (user.otpExpires && user.otpExpires < new Date())) {
+    throw new Error("Invalid or expired OTP");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { email },
+    data: { 
+      password: hashedPassword, 
+      otp: null, 
+      otpExpires: null 
+    }
+  });
+
+  return true;
+};

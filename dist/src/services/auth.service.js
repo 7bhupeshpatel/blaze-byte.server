@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginUser = exports.verifyAndActivate = exports.registerUser = void 0;
+exports.resetPassword = exports.requestPasswordReset = exports.loginUser = exports.verifyAndActivate = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_config_1 = __importDefault(require("../config/db.config"));
@@ -63,4 +63,36 @@ const loginUser = (data) => __awaiter(void 0, void 0, void 0, function* () {
     return { token, user: { id: user.id, email: user.email, role: user.role } };
 });
 exports.loginUser = loginUser;
+const requestPasswordReset = (email) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield db_config_1.default.user.findUnique({ where: { email } });
+    if (!user)
+        throw new Error("If an account exists with this email, an OTP has been sent.");
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    yield db_config_1.default.user.update({
+        where: { email },
+        data: { otp, otpExpires }
+    });
+    yield (0, emai_util_1.sendEmail)(email, "Password Reset OTP", `Your password reset code is: ${otp}`);
+    return true;
+});
+exports.requestPasswordReset = requestPasswordReset;
+const resetPassword = (data) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, otp, newPassword } = data;
+    const user = yield db_config_1.default.user.findUnique({ where: { email } });
+    if (!user || user.otp !== otp || (user.otpExpires && user.otpExpires < new Date())) {
+        throw new Error("Invalid or expired OTP");
+    }
+    const hashedPassword = yield bcryptjs_1.default.hash(newPassword, 12);
+    yield db_config_1.default.user.update({
+        where: { email },
+        data: {
+            password: hashedPassword,
+            otp: null,
+            otpExpires: null
+        }
+    });
+    return true;
+});
+exports.resetPassword = resetPassword;
 //# sourceMappingURL=auth.service.js.map
