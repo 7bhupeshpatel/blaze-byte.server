@@ -1,17 +1,17 @@
 import { PrismaClient, Role } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg'
+// import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
 // Load env variables manually for the standalone script
 dotenv.config();
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-})
+// const adapter = new PrismaPg({
+//   connectionString: process.env.DATABASE_URL!,
+// })
 
 const prisma = new PrismaClient({
-  adapter,  
+  // adapter,  
   log: ['query', 'info', 'warn', 'error'],
 })
 
