@@ -22,8 +22,7 @@
   },
   "homepage": "https://github.com/7bhupeshpatel/BLAZE-BYTE.server#readme",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.4.0",
-    "@prisma/client": "^7.4.0",
+    "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -42,7 +41,7 @@
     "@types/node": "^25.2.3",
     "@types/nodemailer": "^7.0.10",
     "@types/pg": "^8.16.0",
-    "prisma": "^7.4.0",
+    "prisma": "^6.19.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   },
