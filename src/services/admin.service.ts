@@ -25,14 +25,25 @@ export const adminService = {
 
 async updateUser(userId: string, data: any, adminId: string) {
   try {
-    // Normalize Date
+
+    /* ================= PASSWORD HASHING ================= */
+
+    if (data.password && data.password.trim() !== "") {
+      data.password = await bcrypt.hash(data.password, 10);
+    } else {
+      delete data.password; // prevent overwriting with empty string
+    }
+
+    /* ================= DATE NORMALIZATION ================= */
+
     if (data.isValidTill) {
       data.isValidTill = new Date(data.isValidTill);
-    } else {
+    } else if (data.isValidTill === null) {
       data.isValidTill = null;
     }
 
-    // Get current user state
+    /* ================= EXISTING USER ================= */
+
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
       include: { managedCompany: true }
@@ -40,13 +51,15 @@ async updateUser(userId: string, data: any, adminId: string) {
 
     if (!existingUser) throw new Error("User not found");
 
-    // Update user role/status first
+    /* ================= UPDATE USER ================= */
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { ...data }
+      data
     });
 
-    // 🔥 If promoted to ADMIN and doesn't already own workspace
+    /* ================= ROLE PROMOTION ================= */
+
     if (
       data.role === "ADMIN" &&
       !existingUser.managedCompany
@@ -59,9 +72,11 @@ async updateUser(userId: string, data: any, adminId: string) {
       });
     }
 
-    // 🔥 If downgraded from ADMIN → remove company (optional safety)
+    /* ================= ROLE DOWNGRADE ================= */
+
     if (
       existingUser.role === "ADMIN" &&
+      data.role &&
       data.role !== "ADMIN"
     ) {
       await prisma.company.deleteMany({
@@ -69,13 +84,17 @@ async updateUser(userId: string, data: any, adminId: string) {
       });
     }
 
-    // Audit log
+    /* ================= AUDIT LOG ================= */
+
     await prisma.auditLog.create({
       data: {
         adminId,
         action: "UPDATE_USER",
         targetId: userId,
-        details: JSON.stringify(data)
+        details: JSON.stringify({
+          ...data,
+          password: data.password ? "UPDATED" : undefined // never log hash
+        })
       }
     });
 
