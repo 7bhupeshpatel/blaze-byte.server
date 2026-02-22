@@ -17,6 +17,7 @@ export const createSale = async (req: any, res: Response) => {
       req.body.items,
       req.body.customer,
       req.body.discountPercent,
+      req.body.paymentMethod,
     );
 
     res.json({ success: true, data: sale });

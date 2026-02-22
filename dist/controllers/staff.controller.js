@@ -23,7 +23,7 @@ const getProductsForStaff = (req, res) => __awaiter(void 0, void 0, void 0, func
 exports.getProductsForStaff = getProductsForStaff;
 const createSale = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const sale = yield staff_service_1.staffService.createSale(req.user.id, req.body.items, req.body.customer, req.body.discountPercent);
+        const sale = yield staff_service_1.staffService.createSale(req.user.id, req.body.items, req.body.customer, req.body.discountPercent, req.body.paymentMethod);
         res.json({ success: true, data: sale });
     }
     catch (error) {

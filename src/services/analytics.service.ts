@@ -2,116 +2,179 @@ import prisma from '../config/db.config';
 
 export const analyticsService = {
 
-  async getAdminAnalytics(userId: string) {
+async getAdminAnalytics(userId: string) {
 
-    const admin = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { managedCompany: true }
+  const admin = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { managedCompany: true }
+  });
+
+  if (!admin?.managedCompany)
+    throw new Error("Workspace not found");
+
+  const companyId = admin.managedCompany.id;
+
+  const now = new Date();
+
+  const startOfDay = new Date(now); startOfDay.setHours(0,0,0,0);
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  /* ================= SALES AGGREGATES ================= */
+
+  const [
+    daily,
+    weekly,
+    monthly,
+    yearly,
+
+    dailyCash,
+    dailyOnline,
+    monthlyCash,
+    monthlyOnline,
+
+    totalOrdersToday,
+    totalOrdersMonth,
+    totalOrdersYear,
+
+    monthlyDiscount,
+    yearlyDiscount,
+
+    lastMonthRevenue
+  ] = await Promise.all([
+
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfDay }}}),
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfWeek }}}),
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfMonth }}}),
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfYear }}}),
+
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfDay }, paymentMethod:"CASH"}}),
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfDay }, paymentMethod:"ONLINE"}}),
+
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfMonth }, paymentMethod:"CASH"}}),
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfMonth }, paymentMethod:"ONLINE"}}),
+
+    prisma.sale.count({ where:{ staff:{ companyId }, createdAt:{ gte:startOfDay }}}),
+    prisma.sale.count({ where:{ staff:{ companyId }, createdAt:{ gte:startOfMonth }}}),
+    prisma.sale.count({ where:{ staff:{ companyId }, createdAt:{ gte:startOfYear }}}),
+
+    prisma.sale.aggregate({ _sum:{ discountAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfMonth }}}),
+    prisma.sale.aggregate({ _sum:{ discountAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfYear }}}),
+
+    prisma.sale.aggregate({ _sum:{ totalAmount:true }, where:{ staff:{ companyId }, createdAt:{ gte:startOfLastMonth, lte:endOfLastMonth }}})
+  ]);
+
+  /* ================= AVERAGE ORDER ================= */
+
+  const avgOrderValue =
+    totalOrdersMonth > 0
+      ? (monthly._sum.totalAmount || 0) / totalOrdersMonth
+      : 0;
+
+  /* ================= GROWTH ================= */
+
+  const currentMonth = monthly._sum.totalAmount || 0;
+  const previousMonth = lastMonthRevenue._sum.totalAmount || 0;
+
+  const monthlyGrowthPercent =
+    previousMonth > 0
+      ? ((currentMonth - previousMonth) / previousMonth) * 100
+      : 0;
+
+  const isGrowing = monthlyGrowthPercent >= 0;
+
+  /* ================= LAST 7 DAYS TREND ================= */
+
+  const last7Days = [];
+  for (let i=6; i>=0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const start = new Date(date); start.setHours(0,0,0,0);
+    const end = new Date(date); end.setHours(23,59,59,999);
+
+    const revenue = await prisma.sale.aggregate({
+      _sum:{ totalAmount:true },
+      where:{ staff:{ companyId }, createdAt:{ gte:start, lte:end }}
     });
 
-    if (!admin?.managedCompany)
-      throw new Error("Workspace not found");
+    last7Days.push({
+      date: date.toLocaleDateString(),
+      revenue: revenue._sum.totalAmount || 0
+    });
+  }
 
-    const companyId = admin.managedCompany.id;
+  /* ================= LAST 12 MONTHS TREND ================= */
 
-    const now = new Date();
+  const last12Months = [];
+  for (let i=11; i>=0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth()-i+1, 0);
 
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0,0,0,0);
-
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    /* ============================= */
-    /* ===== SALES TOTALS ========== */
-    /* ============================= */
-
-    const [daily, weekly, monthly] = await Promise.all([
-
-      prisma.sale.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          createdAt: { gte: startOfDay },
-          staff: { companyId }
-        }
-      }),
-
-      prisma.sale.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          createdAt: { gte: startOfWeek },
-          staff: { companyId }
-        }
-      }),
-
-      prisma.sale.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          createdAt: { gte: startOfMonth },
-          staff: { companyId }
-        }
-      })
-
-    ]);
-
-    /* ============================= */
-    /* ===== MOST SOLD PRODUCT ===== */
-    /* ============================= */
-
-    const topProduct = await prisma.saleItem.groupBy({
-      by: ['productId'],
-      _sum: { quantity: true },
-      orderBy: { _sum: { quantity: 'desc' } },
-      take: 1
+    const revenue = await prisma.sale.aggregate({
+      _sum:{ totalAmount:true },
+      where:{ staff:{ companyId }, createdAt:{ gte:monthStart, lte:monthEnd }}
     });
 
-    let productInfo = null;
-
-    if (topProduct.length > 0) {
-      productInfo = await prisma.product.findUnique({
-        where: { id: topProduct[0].productId }
-      });
-    }
-
-    /* ============================= */
-    /* ===== MOST SOLD CATEGORY ==== */
-    /* ============================= */
-
-    const categoryData = await prisma.saleItem.groupBy({
-      by: ['productId'],
-      _sum: { quantity: true }
+    last12Months.push({
+      month: monthStart.toLocaleString('default',{ month:'short' }),
+      revenue: revenue._sum.totalAmount || 0
     });
+  }
 
-    let categoryMap: Record<string, number> = {};
+  /* ================= STAFF RANKING ================= */
 
-    for (const entry of categoryData) {
-      const product = await prisma.product.findUnique({
-        where: { id: entry.productId }
-      });
+  const staffRankingRaw = await prisma.sale.groupBy({
+    by:['staffId'],
+    _sum:{ totalAmount:true },
+    where:{ staff:{ companyId }},
+    orderBy:{ _sum:{ totalAmount:'desc' }}
+  });
 
-      if (!product) continue;
+  const staffRanking = await Promise.all(
+    staffRankingRaw.map(async s => {
+      const user = await prisma.user.findUnique({ where:{ id:s.staffId }});
+      return {
+        name: user?.email || "Unknown",
+        revenue: s._sum.totalAmount || 0
+      };
+    })
+  );
 
-      const category = product.category || "General";
+  return {
+    daily: daily._sum.totalAmount || 0,
+    weekly: weekly._sum.totalAmount || 0,
+    monthly: monthly._sum.totalAmount || 0,
+    yearly: yearly._sum.totalAmount || 0,
 
-      categoryMap[category] =
-        (categoryMap[category] || 0) + (entry._sum.quantity || 0);
-    }
+    dailyCash: dailyCash._sum.totalAmount || 0,
+    dailyOnline: dailyOnline._sum.totalAmount || 0,
 
-    const mostSoldCategory = Object.entries(categoryMap)
-      .sort((a, b) => b[1] - a[1])[0];
+    monthlyCash: monthlyCash._sum.totalAmount || 0,
+    monthlyOnline: monthlyOnline._sum.totalAmount || 0,
 
-    return {
-      daily: daily._sum.totalAmount || 0,
-      weekly: weekly._sum.totalAmount || 0,
-      monthly: monthly._sum.totalAmount || 0,
+    totalOrdersToday,
+    totalOrdersMonth,
+    totalOrdersYear,
 
-      mostSoldProduct: productInfo,
-      mostSoldCategory: mostSoldCategory?.[0] || null
-    };
-  },
+    totalDiscountMonth: monthlyDiscount._sum.discountAmount || 0,
+    totalDiscountYear: yearlyDiscount._sum.discountAmount || 0,
+
+    averageOrderValue: avgOrderValue,
+
+    monthlyGrowthPercent,
+    isGrowing,
+
+    last7Days,
+    last12Months,
+
+    staffRanking
+  };
+},
+
 
 
   async getStaffAnalytics(userId: string) {
@@ -127,7 +190,11 @@ export const analyticsService = {
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [daily, weekly, monthly] = await Promise.all([
+    const [daily, weekly, monthly, dailyCash,
+    dailyOnline,
+
+    monthlyCash,
+    monthlyOnline] = await Promise.all([
 
       prisma.sale.aggregate({
         _sum: { totalAmount: true },
@@ -151,14 +218,56 @@ export const analyticsService = {
           staffId: userId,
           createdAt: { gte: startOfMonth }
         }
-      })
+      }),
+
+      prisma.sale.aggregate({
+      _sum: { totalAmount: true },
+      where: {
+        staffId: userId,
+        createdAt: { gte: startOfDay },
+        paymentMethod: "CASH"
+      }
+    }),
+
+    prisma.sale.aggregate({
+      _sum: { totalAmount: true },
+      where: {
+        staffId: userId,
+        createdAt: { gte: startOfDay },
+        paymentMethod: "ONLINE"
+      }
+    }),
+
+    prisma.sale.aggregate({
+      _sum: { totalAmount: true },
+      where: {
+        staffId: userId,
+        createdAt: { gte: startOfMonth },
+        paymentMethod: "CASH"
+      }
+    }),
+
+    prisma.sale.aggregate({
+      _sum: { totalAmount: true },
+      where: {
+        staffId: userId,
+        createdAt: { gte: startOfMonth },
+        paymentMethod: "ONLINE"
+      }
+    })
 
     ]);
 
     return {
       daily: daily._sum.totalAmount || 0,
       weekly: weekly._sum.totalAmount || 0,
-      monthly: monthly._sum.totalAmount || 0
+      monthly: monthly._sum.totalAmount || 0,
+
+      dailyCash: dailyCash._sum.totalAmount || 0,
+      dailyOnline: dailyOnline._sum.totalAmount || 0,
+
+      monthlyCash: monthlyCash._sum.totalAmount || 0,
+      monthlyOnline: monthlyOnline._sum.totalAmount || 0
     };
   }
 

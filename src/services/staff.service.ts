@@ -28,7 +28,8 @@ async createSale(
   userId: string,
   items: { productId: string; quantity: number }[],
   customer?: { name?: string; phone?: string },
-  discountPercent?: number
+  discountPercent?: number,
+  paymentMethod?: "CASH" | "ONLINE"
 ) {
 
   const staff = await prisma.user.findUnique({
@@ -63,6 +64,11 @@ async createSale(
   const discount = discountPercent || 0;
   const discountAmount = (subtotalAmount * discount) / 100;
   const totalAmount = subtotalAmount - discountAmount;
+  const method = paymentMethod || "CASH";
+
+if (!["CASH", "ONLINE"].includes(method)) {
+  throw new Error("Invalid payment method.");
+}
 
   return prisma.$transaction(async (tx) => {
 
@@ -75,6 +81,7 @@ async createSale(
         totalAmount,
         customerName: customer?.name || null,
         customerPhone: customer?.phone || null,
+        paymentMethod: method,   // ✅ NEW FIELD
 
         items: {
         create: items.map(item => ({

@@ -15,7 +15,7 @@ export declare const staffService: {
     }[], customer?: {
         name?: string;
         phone?: string;
-    }, discountPercent?: number): Promise<{
+    }, discountPercent?: number, paymentMethod?: "CASH" | "ONLINE"): Promise<{
         staff: {
             id: string;
             email: string;
@@ -45,6 +45,7 @@ export declare const staffService: {
         subtotalAmount: number;
         discountPercent: number | null;
         discountAmount: number | null;
+        paymentMethod: import(".prisma/client").$Enums.PaymentMethod;
         customerName: string | null;
         customerPhone: string | null;
     }>;
@@ -78,6 +79,7 @@ export declare const staffService: {
         subtotalAmount: number;
         discountPercent: number | null;
         discountAmount: number | null;
+        paymentMethod: import(".prisma/client").$Enums.PaymentMethod;
         customerName: string | null;
         customerPhone: string | null;
     })[]>;

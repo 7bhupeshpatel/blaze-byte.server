@@ -28,7 +28,7 @@ exports.staffService = {
             });
         });
     },
-    createSale(userId, items, customer, discountPercent) {
+    createSale(userId, items, customer, discountPercent, paymentMethod) {
         return __awaiter(this, void 0, void 0, function* () {
             const staff = yield db_config_1.default.user.findUnique({
                 where: { id: userId }
@@ -54,6 +54,10 @@ exports.staffService = {
             const discount = discountPercent || 0;
             const discountAmount = (subtotalAmount * discount) / 100;
             const totalAmount = subtotalAmount - discountAmount;
+            const method = paymentMethod || "CASH";
+            if (!["CASH", "ONLINE"].includes(method)) {
+                throw new Error("Invalid payment method.");
+            }
             return db_config_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 const sale = yield tx.sale.create({
                     data: {
@@ -64,6 +68,7 @@ exports.staffService = {
                         totalAmount,
                         customerName: (customer === null || customer === void 0 ? void 0 : customer.name) || null,
                         customerPhone: (customer === null || customer === void 0 ? void 0 : customer.phone) || null,
+                        paymentMethod: method,
                         items: {
                             create: items.map(item => ({
                                 productId: item.productId,

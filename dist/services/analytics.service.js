@@ -17,6 +17,7 @@ const db_config_1 = __importDefault(require("../config/db.config"));
 exports.analyticsService = {
     getAdminAnalytics(userId) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const admin = yield db_config_1.default.user.findUnique({
                 where: { id: userId },
                 include: { managedCompany: true }
@@ -31,34 +32,92 @@ exports.analyticsService = {
             startOfWeek.setDate(now.getDate() - now.getDay());
             startOfWeek.setHours(0, 0, 0, 0);
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const [daily, weekly, monthly] = yield Promise.all([
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+            const [daily, weekly, monthly, yearly, dailyCash, dailyOnline, monthlyCash, monthlyOnline, todayOrders, monthOrders, lastMonthSales] = yield Promise.all([
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: startOfDay } }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: startOfWeek } }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: startOfMonth } }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: startOfYear } }
+                }),
                 db_config_1.default.sale.aggregate({
                     _sum: { totalAmount: true },
                     where: {
+                        staff: { companyId },
                         createdAt: { gte: startOfDay },
-                        staff: { companyId }
+                        paymentMethod: "CASH"
                     }
                 }),
                 db_config_1.default.sale.aggregate({
                     _sum: { totalAmount: true },
                     where: {
-                        createdAt: { gte: startOfWeek },
-                        staff: { companyId }
+                        staff: { companyId },
+                        createdAt: { gte: startOfDay },
+                        paymentMethod: "ONLINE"
                     }
                 }),
                 db_config_1.default.sale.aggregate({
                     _sum: { totalAmount: true },
                     where: {
+                        staff: { companyId },
                         createdAt: { gte: startOfMonth },
-                        staff: { companyId }
+                        paymentMethod: "CASH"
+                    }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staff: { companyId },
+                        createdAt: { gte: startOfMonth },
+                        paymentMethod: "ONLINE"
+                    }
+                }),
+                db_config_1.default.sale.count({
+                    where: { staff: { companyId }, createdAt: { gte: startOfDay } }
+                }),
+                db_config_1.default.sale.count({
+                    where: { staff: { companyId }, createdAt: { gte: startOfMonth } }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staff: { companyId },
+                        createdAt: {
+                            gte: startOfLastMonth,
+                            lte: endOfLastMonth
+                        }
                     }
                 })
             ]);
+            const averageOrderValue = monthOrders > 0
+                ? (monthly._sum.totalAmount || 0) / monthOrders
+                : 0;
+            const currentMonth = monthly._sum.totalAmount || 0;
+            const previousMonth = lastMonthSales._sum.totalAmount || 0;
+            const monthlyGrowthPercent = previousMonth > 0
+                ? ((currentMonth - previousMonth) / previousMonth) * 100
+                : 0;
+            const isGrowing = monthlyGrowthPercent >= 0;
             const topProduct = yield db_config_1.default.saleItem.groupBy({
                 by: ['productId'],
                 _sum: { quantity: true },
                 orderBy: { _sum: { quantity: 'desc' } },
-                take: 1
+                take: 1,
+                where: {
+                    sale: { staff: { companyId } }
+                }
             });
             let productInfo = null;
             if (topProduct.length > 0) {
@@ -66,29 +125,37 @@ exports.analyticsService = {
                     where: { id: topProduct[0].productId }
                 });
             }
-            const categoryData = yield db_config_1.default.saleItem.groupBy({
-                by: ['productId'],
-                _sum: { quantity: true }
+            const categoryItems = yield db_config_1.default.saleItem.findMany({
+                where: {
+                    sale: { staff: { companyId } }
+                },
+                include: { product: true }
             });
-            let categoryMap = {};
-            for (const entry of categoryData) {
-                const product = yield db_config_1.default.product.findUnique({
-                    where: { id: entry.productId }
-                });
-                if (!product)
-                    continue;
-                const category = product.category || "General";
+            const categoryMap = {};
+            categoryItems.forEach(item => {
+                const category = item.product.category || "General";
                 categoryMap[category] =
-                    (categoryMap[category] || 0) + (entry._sum.quantity || 0);
-            }
-            const mostSoldCategory = Object.entries(categoryMap)
-                .sort((a, b) => b[1] - a[1])[0];
+                    (categoryMap[category] || 0) + item.quantity;
+            });
+            const categoryBreakdown = Object.entries(categoryMap).map(([category, quantity]) => ({ category, quantity }));
+            const mostSoldCategory = ((_a = categoryBreakdown.sort((a, b) => b.quantity - a.quantity)[0]) === null || _a === void 0 ? void 0 : _a.category) || null;
             return {
                 daily: daily._sum.totalAmount || 0,
                 weekly: weekly._sum.totalAmount || 0,
                 monthly: monthly._sum.totalAmount || 0,
+                yearly: yearly._sum.totalAmount || 0,
+                dailyCash: dailyCash._sum.totalAmount || 0,
+                dailyOnline: dailyOnline._sum.totalAmount || 0,
+                monthlyCash: monthlyCash._sum.totalAmount || 0,
+                monthlyOnline: monthlyOnline._sum.totalAmount || 0,
+                totalOrdersToday: todayOrders,
+                totalOrdersMonth: monthOrders,
+                averageOrderValue,
+                monthlyGrowthPercent,
+                isGrowing,
                 mostSoldProduct: productInfo,
-                mostSoldCategory: (mostSoldCategory === null || mostSoldCategory === void 0 ? void 0 : mostSoldCategory[0]) || null
+                mostSoldCategory,
+                categoryBreakdown
             };
         });
     },
@@ -101,7 +168,7 @@ exports.analyticsService = {
             startOfWeek.setDate(now.getDate() - now.getDay());
             startOfWeek.setHours(0, 0, 0, 0);
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const [daily, weekly, monthly] = yield Promise.all([
+            const [daily, weekly, monthly, dailyCash, dailyOnline, monthlyCash, monthlyOnline] = yield Promise.all([
                 db_config_1.default.sale.aggregate({
                     _sum: { totalAmount: true },
                     where: {
@@ -122,12 +189,48 @@ exports.analyticsService = {
                         staffId: userId,
                         createdAt: { gte: startOfMonth }
                     }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staffId: userId,
+                        createdAt: { gte: startOfDay },
+                        paymentMethod: "CASH"
+                    }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staffId: userId,
+                        createdAt: { gte: startOfDay },
+                        paymentMethod: "ONLINE"
+                    }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staffId: userId,
+                        createdAt: { gte: startOfMonth },
+                        paymentMethod: "CASH"
+                    }
+                }),
+                db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: {
+                        staffId: userId,
+                        createdAt: { gte: startOfMonth },
+                        paymentMethod: "ONLINE"
+                    }
                 })
             ]);
             return {
                 daily: daily._sum.totalAmount || 0,
                 weekly: weekly._sum.totalAmount || 0,
-                monthly: monthly._sum.totalAmount || 0
+                monthly: monthly._sum.totalAmount || 0,
+                dailyCash: dailyCash._sum.totalAmount || 0,
+                dailyOnline: dailyOnline._sum.totalAmount || 0,
+                monthlyCash: monthlyCash._sum.totalAmount || 0,
+                monthlyOnline: monthlyOnline._sum.totalAmount || 0
             };
         });
     }

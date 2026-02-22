@@ -12,7 +12,7 @@ export declare const registerUser: (data: any) => Promise<{
     resetOtp: string | null;
     resetOtpExpires: Date | null;
     companyId: string | null;
-    metadata: import("@prisma/client/runtime/client").JsonValue | null;
+    metadata: import("@prisma/client/runtime/library").JsonValue | null;
     updatedAt: Date;
 }>;
 export declare const verifyAndActivate: (email: string, otp: string) => Promise<{
@@ -29,7 +29,7 @@ export declare const verifyAndActivate: (email: string, otp: string) => Promise<
     resetOtp: string | null;
     resetOtpExpires: Date | null;
     companyId: string | null;
-    metadata: import("@prisma/client/runtime/client").JsonValue | null;
+    metadata: import("@prisma/client/runtime/library").JsonValue | null;
     updatedAt: Date;
 }>;
 export declare const loginUser: (data: any) => Promise<{

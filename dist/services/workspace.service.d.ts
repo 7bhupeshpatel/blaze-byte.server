@@ -13,7 +13,7 @@ export declare const workspaceService: {
         resetOtp: string | null;
         resetOtpExpires: Date | null;
         companyId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         updatedAt: Date;
     }>;
     addProduct(adminId: string, productData: any): Promise<{
@@ -83,7 +83,7 @@ export declare const workspaceService: {
         resetOtp: string | null;
         resetOtpExpires: Date | null;
         companyId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         updatedAt: Date;
     }>;
     deleteStaff(adminId: string, staffId: string): Promise<{
@@ -100,7 +100,7 @@ export declare const workspaceService: {
         resetOtp: string | null;
         resetOtpExpires: Date | null;
         companyId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         updatedAt: Date;
     }>;
 };

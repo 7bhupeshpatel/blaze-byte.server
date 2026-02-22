@@ -13,7 +13,7 @@ export declare const adminService: {
         resetOtp: string | null;
         resetOtpExpires: Date | null;
         companyId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         updatedAt: Date;
     }[]>;
     updateUser(userId: string, data: any, adminId: string): Promise<{
@@ -30,7 +30,7 @@ export declare const adminService: {
         resetOtp: string | null;
         resetOtpExpires: Date | null;
         companyId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         updatedAt: Date;
     }>;
     getAuditLogs(): Promise<({
