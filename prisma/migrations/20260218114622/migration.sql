@@ -1,4 +1,0 @@
--- AlterTable
-ALTER TABLE "Sale" ADD COLUMN     "discountAmount" DOUBLE PRECISION,
-ADD COLUMN     "discountPercent" DOUBLE PRECISION,
-ADD COLUMN     "subtotalAmount" DOUBLE PRECISION NOT NULL DEFAULT 0;
