@@ -8,6 +8,22 @@ interface OrderItemInput {
 }
 
 export class GuestService {
+
+    static async getOrderStatus(orderId: string) {
+    const order = await prisma.sale.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true
+      }
+    });
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    return order;
+};
   
   // 1. Fetch the public menu for a company
   static async getMenu(companyId: string) {
@@ -85,4 +101,7 @@ export class GuestService {
 
     return sale;
   }
+
+ 
+
 }

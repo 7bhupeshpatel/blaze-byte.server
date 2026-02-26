@@ -22,6 +22,24 @@ export const getCompanyMenu = async (req: Request, res: Response): Promise<any> 
   }
 };
 
+export const getOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const orderId = req.params.orderId as string;
+
+    const order = await GuestService.getOrderStatus(orderId);
+
+    return res.status(200).json({
+      success: true,
+      data: order
+    });
+
+  } catch (error: any) {
+    return res.status(404).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 export const placeGuestOrder = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     // Explicitly cast companyId as a string
@@ -52,4 +70,6 @@ export const placeGuestOrder = async (req: AuthRequest, res: Response): Promise<
   } catch (error: any) {
     return res.status(400).json({ success: false, message: error.message });
   }
+
+  
 };
