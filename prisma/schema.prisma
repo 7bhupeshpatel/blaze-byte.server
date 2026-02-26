@@ -129,9 +129,9 @@ model Sale {
   guest   User?   @relation("GuestOrders", fields: [guestId], references: [id])
 
   // NEW: Status tracking
-  status          OrderStatus   @default(COMPLETED) // Default COMPLETED so existing staff POS logic doesn't break
-  orderNumber     String?       // Friendly ID like "A-102" for the guest
-  
+  status      OrderStatus @default(COMPLETED) // Default COMPLETED so existing staff POS logic doesn't break
+  orderNumber String? // Friendly ID like "A-102" for the guest
+
   totalAmount Float
 
   subtotalAmount  Float  @default(0) // Amount BEFORE discount
