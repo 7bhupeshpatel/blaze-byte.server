@@ -136,7 +136,11 @@ async getAdminAnalytics(userId: string) {
 
   const staffRanking = await Promise.all(
     staffRankingRaw.map(async s => {
-      const user = await prisma.user.findUnique({ where:{ id:s.staffId }});
+      if (!s.staffId) return null;
+
+const user = await prisma.user.findUnique({
+  where: { id: s.staffId }
+});
       return {
         name: user?.email || "Unknown",
         revenue: s._sum.totalAmount || 0

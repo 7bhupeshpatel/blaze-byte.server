@@ -8,6 +8,7 @@ export declare const staffService: {
         price: number;
         category: string | null;
         stock: number | null;
+        cost: number;
     }[]>;
     createSale(userId: string, items: {
         productId: string;
@@ -19,7 +20,7 @@ export declare const staffService: {
         staff: {
             id: string;
             email: string;
-        };
+        } | null;
         items: ({
             product: {
                 name: string;
@@ -30,6 +31,7 @@ export declare const staffService: {
                 price: number;
                 category: string | null;
                 stock: number | null;
+                cost: number;
             };
         } & {
             id: string;
@@ -40,7 +42,11 @@ export declare const staffService: {
     } & {
         id: string;
         createdAt: Date;
-        staffId: string;
+        companyId: string;
+        staffId: string | null;
+        guestId: string | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        orderNumber: string | null;
         totalAmount: number;
         subtotalAmount: number;
         discountPercent: number | null;
@@ -53,7 +59,7 @@ export declare const staffService: {
         staff: {
             id: string;
             email: string;
-        };
+        } | null;
         items: ({
             product: {
                 name: string;
@@ -64,6 +70,7 @@ export declare const staffService: {
                 price: number;
                 category: string | null;
                 stock: number | null;
+                cost: number;
             };
         } & {
             id: string;
@@ -74,7 +81,11 @@ export declare const staffService: {
     } & {
         id: string;
         createdAt: Date;
-        staffId: string;
+        companyId: string;
+        staffId: string | null;
+        guestId: string | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        orderNumber: string | null;
         totalAmount: number;
         subtotalAmount: number;
         discountPercent: number | null;

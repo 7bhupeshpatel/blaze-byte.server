@@ -12,6 +12,8 @@ const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const workspace_routes_1 = __importDefault(require("./routes/workspace.routes"));
 const staff_routes_1 = __importDefault(require("./routes/staff.routes"));
 const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
+const guest_routes_1 = __importDefault(require("./routes/guest.routes"));
+const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const app = (0, express_1.default)();
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)());
@@ -21,6 +23,8 @@ app.use('/api/v1/admin', admin_routes_1.default);
 app.use('/api/v1/workspace', workspace_routes_1.default);
 app.use('/api/v1/staff', staff_routes_1.default);
 app.use('/api/v1/analytics', analytics_routes_1.default);
+app.use('/api/v1/guest', guest_routes_1.default);
+app.use('/api/v1/orders', order_routes_1.default);
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });
 });

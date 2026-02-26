@@ -64,12 +64,18 @@ async updateUser(userId: string, data: any, adminId: string) {
       data.role === "ADMIN" &&
       !existingUser.managedCompany
     ) {
-      await prisma.company.create({
+      const newCompany = await prisma.company.create({
         data: {
           name: `${updatedUser.email.split("@")[0]}'s Workspace`,
           ownerId: userId
         }
       });
+
+      // CRITICAL: Link this company to the user's profile
+  await prisma.user.update({
+    where: { id: userId },
+    data: { companyId: newCompany.id } // Now the user belongs to the company they own
+  });
     }
 
     /* ================= ROLE DOWNGRADE ================= */
@@ -82,6 +88,11 @@ async updateUser(userId: string, data: any, adminId: string) {
       await prisma.company.deleteMany({
         where: { ownerId: userId }
       });
+      // 2. Clear the companyId from the user so they are "homeless" again
+  await prisma.user.update({
+    where: { id: userId },
+    data: { companyId: null }
+  });
     }
 
     /* ================= AUDIT LOG ================= */

@@ -10,24 +10,24 @@ export declare const analyticsService: {
         monthlyOnline: number;
         totalOrdersToday: number;
         totalOrdersMonth: number;
+        totalOrdersYear: number;
+        totalDiscountMonth: number;
+        totalDiscountYear: number;
         averageOrderValue: number;
         monthlyGrowthPercent: number;
         isGrowing: boolean;
-        mostSoldProduct: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            companyId: string;
-            updatedAt: Date;
-            price: number;
-            category: string | null;
-            stock: number | null;
-        } | null;
-        mostSoldCategory: string | null;
-        categoryBreakdown: {
-            category: string;
-            quantity: number;
+        last7Days: {
+            date: string;
+            revenue: number;
         }[];
+        last12Months: {
+            month: string;
+            revenue: number;
+        }[];
+        staffRanking: ({
+            name: string;
+            revenue: number;
+        } | null)[];
     }>;
     getStaffAnalytics(userId: string): Promise<{
         daily: number;

@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adminService = void 0;
 const db_config_1 = __importDefault(require("../config/db.config"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 exports.adminService = {
     getAllUsers(search) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -39,10 +40,16 @@ exports.adminService = {
     updateUser(userId, data, adminId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                if (data.password && data.password.trim() !== "") {
+                    data.password = yield bcryptjs_1.default.hash(data.password, 10);
+                }
+                else {
+                    delete data.password;
+                }
                 if (data.isValidTill) {
                     data.isValidTill = new Date(data.isValidTill);
                 }
-                else {
+                else if (data.isValidTill === null) {
                     data.isValidTill = null;
                 }
                 const existingUser = yield db_config_1.default.user.findUnique({
@@ -53,21 +60,30 @@ exports.adminService = {
                     throw new Error("User not found");
                 const updatedUser = yield db_config_1.default.user.update({
                     where: { id: userId },
-                    data: Object.assign({}, data)
+                    data
                 });
                 if (data.role === "ADMIN" &&
                     !existingUser.managedCompany) {
-                    yield db_config_1.default.company.create({
+                    const newCompany = yield db_config_1.default.company.create({
                         data: {
                             name: `${updatedUser.email.split("@")[0]}'s Workspace`,
                             ownerId: userId
                         }
                     });
+                    yield db_config_1.default.user.update({
+                        where: { id: userId },
+                        data: { companyId: newCompany.id }
+                    });
                 }
                 if (existingUser.role === "ADMIN" &&
+                    data.role &&
                     data.role !== "ADMIN") {
                     yield db_config_1.default.company.deleteMany({
                         where: { ownerId: userId }
+                    });
+                    yield db_config_1.default.user.update({
+                        where: { id: userId },
+                        data: { companyId: null }
                     });
                 }
                 yield db_config_1.default.auditLog.create({
@@ -75,7 +91,7 @@ exports.adminService = {
                         adminId,
                         action: "UPDATE_USER",
                         targetId: userId,
-                        details: JSON.stringify(data)
+                        details: JSON.stringify(Object.assign(Object.assign({}, data), { password: data.password ? "UPDATED" : undefined }))
                     }
                 });
                 return updatedUser;

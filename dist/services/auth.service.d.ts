@@ -38,6 +38,7 @@ export declare const loginUser: (data: any) => Promise<{
         id: string;
         email: string;
         role: import(".prisma/client").$Enums.Role;
+        companyId: string | null;
     };
 }>;
 export declare const requestPasswordReset: (email: string) => Promise<boolean>;

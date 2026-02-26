@@ -25,6 +25,7 @@ export declare const workspaceService: {
         price: number;
         category: string | null;
         stock: number | null;
+        cost: number;
     }>;
     getWorkspaceInventory(userId: string): Promise<{
         name: string;
@@ -35,6 +36,7 @@ export declare const workspaceService: {
         price: number;
         category: string | null;
         stock: number | null;
+        cost: number;
     }[]>;
     getWorkspaceStaff(userId: string): Promise<{
         id: string;
@@ -58,6 +60,7 @@ export declare const workspaceService: {
         price: number;
         category: string | null;
         stock: number | null;
+        cost: number;
     }>;
     deleteProduct(adminId: string, productId: string): Promise<{
         name: string;
@@ -68,6 +71,7 @@ export declare const workspaceService: {
         price: number;
         category: string | null;
         stock: number | null;
+        cost: number;
     }>;
     updateStaff(adminId: string, staffId: string, data: any): Promise<{
         id: string;

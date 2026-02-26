@@ -35,6 +35,7 @@ exports.staffService = {
             });
             if (!staff || !staff.companyId)
                 throw new Error("Unauthorized.");
+            const companyId = staff.companyId;
             let subtotalAmount = 0;
             const products = yield db_config_1.default.product.findMany({
                 where: {
@@ -62,6 +63,7 @@ exports.staffService = {
                 const sale = yield tx.sale.create({
                     data: {
                         staffId: userId,
+                        companyId: companyId,
                         subtotalAmount,
                         discountPercent: discount,
                         discountAmount,

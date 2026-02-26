@@ -12,7 +12,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-
 }
 
 // 1. Roles as requested
@@ -28,50 +27,58 @@ enum PaymentMethod {
   ONLINE
 }
 
+enum OrderStatus {
+  PENDING // Guest placed order, waiting for staff
+  CONFIRMED // Staff accepted, stock confirmed
+  PREPARING // Being made/prepared
+  COMPLETED // Delivered and paid
+  CANCELLED // Cancelled by staff or guest
+}
 
 model AuditLog {
   id        String   @id @default(uuid())
   adminId   String
-  action    String   // e.g., "UPDATE_USER", "DELETE_USER", "BULK_PURGE"
-  targetId  String?  // The ID of the user being modified
-  details   String?  // JSON string of what was changed
+  action    String // e.g., "UPDATE_USER", "DELETE_USER", "BULK_PURGE"
+  targetId  String? // The ID of the user being modified
+  details   String? // JSON string of what was changed
   createdAt DateTime @default(now())
-  
-  admin     User     @relation(fields: [adminId], references: [id])
-}
 
+  admin User @relation(fields: [adminId], references: [id])
+}
 
 // 2. User Model with metadata and account control
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  role          Role      @default(GUEST)
-  
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  role     Role   @default(GUEST)
+
   // Account Status Fields
-  isActive      Boolean   @default(true)
-  isVerified    Boolean   @default(false)
-  isValidTill   DateTime? // For temporary access or suspensions
-  
+  isActive    Boolean   @default(true)
+  isVerified  Boolean   @default(false)
+  isValidTill DateTime? // For temporary access or suspensions
+
   // OTP Logic
-  otp           String?
-  otpExpires    DateTime?
+  otp        String?
+  otpExpires DateTime?
 
   // Reset password
-  resetOtp       String?
+  resetOtp        String?
   resetOtpExpires DateTime?
-  
+
   // Relations
-  companyId    String?   // Link to the workspace
-  company      Company?  @relation(fields: [companyId], references: [id])
-  
+  companyId String? // Link to the workspace
+  company   Company? @relation(fields: [companyId], references: [id])
+
   managedCompany Company? @relation("CompanyOwner") // If the user is an ADMIN
-  sales        Sale[]    // Track sales made by staff
+  sales          Sale[] // Track sales made by staff
+
+  guestOrders Sale[] @relation("GuestOrders")
 
   // Industry grade tracking
-  metadata      Json?     @default("{}") // Store flexible cafe/gaming data here
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  metadata  Json?    @default("{}") // Store flexible cafe/gaming data here
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   auditLogs AuditLog[]
 
@@ -79,50 +86,65 @@ model User {
 }
 
 model Company {
-  id           String    @id @default(uuid())
-  name         String
-  ownerId      String    @unique
-  owner        User      @relation("CompanyOwner", fields: [ownerId], references: [id])
-  
-  staff        User[]    // Members of this workspace
-  products     Product[] // Menu items for this company
-  createdAt    DateTime  @default(now())
+  id      String @id @default(uuid())
+  name    String
+  ownerId String @unique
+  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
+
+  sales     Sale[] // Direct link to sales/orders
+  staff     User[] // Members of this workspace
+  products  Product[] // Menu items for this company
+  createdAt DateTime  @default(now())
 }
 
 model Product {
-  id           String    @id @default(uuid())
-  name         String
-  price        Float
-  category     String?   @default("General")
-  stock        Int?      @default(0)
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  category  String?  @default("General")
+  stock     Int?     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  cost      Float    @default(0)
-  
-  companyId    String
-  company      Company   @relation(fields: [companyId], references: [id])
-  sales        SaleItem[]
+
+  cost Float @default(0)
+
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id])
+  sales     SaleItem[]
 }
 
 model Sale {
-  id           String     @id @default(uuid())
-  staffId      String
-  staff        User       @relation(fields: [staffId], references: [id])
-  totalAmount  Float
+  id String @id @default(uuid())
 
-  subtotalAmount Float    @default(0)   // Amount BEFORE discount
-  discountPercent Float?      // e.g. 10
-  discountAmount Float?       // Calculated discount value
+  // NEW: Direct link to the company to easily fetch incoming orders
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // CHANGED: Made optional. Staff takes ownership when they CONFIRM the order
+  staffId String?
+  staff   User?   @relation(fields: [staffId], references: [id])
+
+  // NEW: Optional link to a Guest User account
+  guestId String?
+  guest   User?   @relation("GuestOrders", fields: [guestId], references: [id])
+
+  // NEW: Status tracking
+  status          OrderStatus   @default(COMPLETED) // Default COMPLETED so existing staff POS logic doesn't break
+  orderNumber     String?       // Friendly ID like "A-102" for the guest
+  
+  totalAmount Float
+
+  subtotalAmount  Float  @default(0) // Amount BEFORE discount
+  discountPercent Float? // e.g. 10
+  discountAmount  Float? // Calculated discount value
 
   paymentMethod PaymentMethod @default(CASH)
 
-  createdAt    DateTime   @default(now())
-  items        SaleItem[]
+  createdAt DateTime   @default(now())
+  items     SaleItem[]
 
   customerName  String?
   customerPhone String?
-
 }
 
 model SaleItem {

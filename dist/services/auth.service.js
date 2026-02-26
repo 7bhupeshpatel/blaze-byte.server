@@ -59,8 +59,8 @@ const loginUser = (data) => __awaiter(void 0, void 0, void 0, function* () {
         throw new Error("Invalid credentials");
     if (!user.isActive)
         throw new Error("Account is suspended");
-    const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    return { token, user: { id: user.id, email: user.email, role: user.role } };
+    const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role, companyId: user.companyId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    return { token, user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId } };
 });
 exports.loginUser = loginUser;
 const requestPasswordReset = (email) => __awaiter(void 0, void 0, void 0, function* () {

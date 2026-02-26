@@ -39,6 +39,7 @@ async createSale(
   if (!staff || !staff.companyId)
     throw new Error("Unauthorized.");
 
+  const companyId = staff.companyId as string;
   let subtotalAmount = 0;
 
   const products = await prisma.product.findMany({
@@ -75,6 +76,7 @@ if (!["CASH", "ONLINE"].includes(method)) {
     const sale = await tx.sale.create({
       data: {
         staffId: userId,
+        companyId: companyId,
         subtotalAmount,
         discountPercent: discount,
         discountAmount,

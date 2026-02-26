@@ -17,7 +17,6 @@ const db_config_1 = __importDefault(require("../config/db.config"));
 exports.analyticsService = {
     getAdminAnalytics(userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             const admin = yield db_config_1.default.user.findUnique({
                 where: { id: userId },
                 include: { managedCompany: true }
@@ -35,110 +34,78 @@ exports.analyticsService = {
             const startOfYear = new Date(now.getFullYear(), 0, 1);
             const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            const [daily, weekly, monthly, yearly, dailyCash, dailyOnline, monthlyCash, monthlyOnline, todayOrders, monthOrders, lastMonthSales] = yield Promise.all([
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: { staff: { companyId }, createdAt: { gte: startOfDay } }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: { staff: { companyId }, createdAt: { gte: startOfWeek } }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: { staff: { companyId }, createdAt: { gte: startOfMonth } }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: { staff: { companyId }, createdAt: { gte: startOfYear } }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: {
-                        staff: { companyId },
-                        createdAt: { gte: startOfDay },
-                        paymentMethod: "CASH"
-                    }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: {
-                        staff: { companyId },
-                        createdAt: { gte: startOfDay },
-                        paymentMethod: "ONLINE"
-                    }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: {
-                        staff: { companyId },
-                        createdAt: { gte: startOfMonth },
-                        paymentMethod: "CASH"
-                    }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: {
-                        staff: { companyId },
-                        createdAt: { gte: startOfMonth },
-                        paymentMethod: "ONLINE"
-                    }
-                }),
-                db_config_1.default.sale.count({
-                    where: { staff: { companyId }, createdAt: { gte: startOfDay } }
-                }),
-                db_config_1.default.sale.count({
-                    where: { staff: { companyId }, createdAt: { gte: startOfMonth } }
-                }),
-                db_config_1.default.sale.aggregate({
-                    _sum: { totalAmount: true },
-                    where: {
-                        staff: { companyId },
-                        createdAt: {
-                            gte: startOfLastMonth,
-                            lte: endOfLastMonth
-                        }
-                    }
-                })
+            const [daily, weekly, monthly, yearly, dailyCash, dailyOnline, monthlyCash, monthlyOnline, totalOrdersToday, totalOrdersMonth, totalOrdersYear, monthlyDiscount, yearlyDiscount, lastMonthRevenue] = yield Promise.all([
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfDay } } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfWeek } } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfMonth } } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfYear } } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfDay }, paymentMethod: "CASH" } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfDay }, paymentMethod: "ONLINE" } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfMonth }, paymentMethod: "CASH" } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfMonth }, paymentMethod: "ONLINE" } }),
+                db_config_1.default.sale.count({ where: { staff: { companyId }, createdAt: { gte: startOfDay } } }),
+                db_config_1.default.sale.count({ where: { staff: { companyId }, createdAt: { gte: startOfMonth } } }),
+                db_config_1.default.sale.count({ where: { staff: { companyId }, createdAt: { gte: startOfYear } } }),
+                db_config_1.default.sale.aggregate({ _sum: { discountAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfMonth } } }),
+                db_config_1.default.sale.aggregate({ _sum: { discountAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfYear } } }),
+                db_config_1.default.sale.aggregate({ _sum: { totalAmount: true }, where: { staff: { companyId }, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } })
             ]);
-            const averageOrderValue = monthOrders > 0
-                ? (monthly._sum.totalAmount || 0) / monthOrders
+            const avgOrderValue = totalOrdersMonth > 0
+                ? (monthly._sum.totalAmount || 0) / totalOrdersMonth
                 : 0;
             const currentMonth = monthly._sum.totalAmount || 0;
-            const previousMonth = lastMonthSales._sum.totalAmount || 0;
+            const previousMonth = lastMonthRevenue._sum.totalAmount || 0;
             const monthlyGrowthPercent = previousMonth > 0
                 ? ((currentMonth - previousMonth) / previousMonth) * 100
                 : 0;
             const isGrowing = monthlyGrowthPercent >= 0;
-            const topProduct = yield db_config_1.default.saleItem.groupBy({
-                by: ['productId'],
-                _sum: { quantity: true },
-                orderBy: { _sum: { quantity: 'desc' } },
-                take: 1,
-                where: {
-                    sale: { staff: { companyId } }
-                }
-            });
-            let productInfo = null;
-            if (topProduct.length > 0) {
-                productInfo = yield db_config_1.default.product.findUnique({
-                    where: { id: topProduct[0].productId }
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const start = new Date(date);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(date);
+                end.setHours(23, 59, 59, 999);
+                const revenue = yield db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: start, lte: end } }
+                });
+                last7Days.push({
+                    date: date.toLocaleDateString(),
+                    revenue: revenue._sum.totalAmount || 0
                 });
             }
-            const categoryItems = yield db_config_1.default.saleItem.findMany({
-                where: {
-                    sale: { staff: { companyId } }
-                },
-                include: { product: true }
+            const last12Months = [];
+            for (let i = 11; i >= 0; i--) {
+                const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+                const revenue = yield db_config_1.default.sale.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { staff: { companyId }, createdAt: { gte: monthStart, lte: monthEnd } }
+                });
+                last12Months.push({
+                    month: monthStart.toLocaleString('default', { month: 'short' }),
+                    revenue: revenue._sum.totalAmount || 0
+                });
+            }
+            const staffRankingRaw = yield db_config_1.default.sale.groupBy({
+                by: ['staffId'],
+                _sum: { totalAmount: true },
+                where: { staff: { companyId } },
+                orderBy: { _sum: { totalAmount: 'desc' } }
             });
-            const categoryMap = {};
-            categoryItems.forEach(item => {
-                const category = item.product.category || "General";
-                categoryMap[category] =
-                    (categoryMap[category] || 0) + item.quantity;
-            });
-            const categoryBreakdown = Object.entries(categoryMap).map(([category, quantity]) => ({ category, quantity }));
-            const mostSoldCategory = ((_a = categoryBreakdown.sort((a, b) => b.quantity - a.quantity)[0]) === null || _a === void 0 ? void 0 : _a.category) || null;
+            const staffRanking = yield Promise.all(staffRankingRaw.map((s) => __awaiter(this, void 0, void 0, function* () {
+                if (!s.staffId)
+                    return null;
+                const user = yield db_config_1.default.user.findUnique({
+                    where: { id: s.staffId }
+                });
+                return {
+                    name: (user === null || user === void 0 ? void 0 : user.email) || "Unknown",
+                    revenue: s._sum.totalAmount || 0
+                };
+            })));
             return {
                 daily: daily._sum.totalAmount || 0,
                 weekly: weekly._sum.totalAmount || 0,
@@ -148,14 +115,17 @@ exports.analyticsService = {
                 dailyOnline: dailyOnline._sum.totalAmount || 0,
                 monthlyCash: monthlyCash._sum.totalAmount || 0,
                 monthlyOnline: monthlyOnline._sum.totalAmount || 0,
-                totalOrdersToday: todayOrders,
-                totalOrdersMonth: monthOrders,
-                averageOrderValue,
+                totalOrdersToday,
+                totalOrdersMonth,
+                totalOrdersYear,
+                totalDiscountMonth: monthlyDiscount._sum.discountAmount || 0,
+                totalDiscountYear: yearlyDiscount._sum.discountAmount || 0,
+                averageOrderValue: avgOrderValue,
                 monthlyGrowthPercent,
                 isGrowing,
-                mostSoldProduct: productInfo,
-                mostSoldCategory,
-                categoryBreakdown
+                last7Days,
+                last12Months,
+                staffRanking
             };
         });
     },

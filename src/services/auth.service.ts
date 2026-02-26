@@ -50,12 +50,12 @@ export const loginUser = async (data: any) => {
   if (!user.isActive) throw new Error("Account is suspended");
 
   const token = jwt.sign(
-    { id: user.id, role: user.role },
+    { id: user.id, role: user.role, companyId: user.companyId },
     process.env.JWT_SECRET as string,
     { expiresIn: '1d' }
   );
 
-  return { token, user: { id: user.id, email: user.email, role: user.role } };
+  return { token, user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId } };
 };
 
 
