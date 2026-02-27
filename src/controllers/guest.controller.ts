@@ -44,7 +44,7 @@ export const placeGuestOrder = async (req: AuthRequest, res: Response): Promise<
   try {
     // Explicitly cast companyId as a string
     const companyId = req.params.companyId as string;
-    const { items, customerName, customerPhone } = req.body;
+    const { items, customerName, customerPhone, paymentMethod } = req.body;
     
     // 3. TypeScript now knows 'user' might exist on this AuthRequest
     const guestId = req.user?.id; 
@@ -58,8 +58,10 @@ export const placeGuestOrder = async (req: AuthRequest, res: Response): Promise<
       companyId, 
       items, 
       customerName, 
+      paymentMethod,
       customerPhone,
-      guestId
+      guestId,
+      
     );
     
     return res.status(201).json({ 

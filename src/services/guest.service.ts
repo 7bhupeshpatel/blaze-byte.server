@@ -48,8 +48,9 @@ export class GuestService {
     companyId: string, 
     items: OrderItemInput[], 
     customerName: string, 
+    paymentMethod: PaymentMethod,
     customerPhone?: string,
-    guestId?: string
+    guestId?: string,
   ) {
     if (!items || items.length === 0) throw new Error("Cart is empty");
 
@@ -89,7 +90,7 @@ export class GuestService {
         orderNumber,
         subtotalAmount: subtotal,
         totalAmount: subtotal, // Assuming no discounts for guest orders initially
-        paymentMethod: PaymentMethod.ONLINE, // Adjust as needed
+        paymentMethod: paymentMethod, // Adjust as needed
         customerName,
         customerPhone: customerPhone ?? null,
         items: {
