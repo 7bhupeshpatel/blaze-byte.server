@@ -23,7 +23,7 @@ export const addInventory = async (req: any, res: Response) => {
 
     // 3. Final Check
     if (!companyId) {
-      return res.status(400).json({ 
+       res.status(400).json({ 
         success: false, 
         message: "No workspace found. Please log out and back in to refresh your session." 
       });
@@ -61,15 +61,15 @@ export const fetchInventory = async (req: any, res: Response) => {
     }
 
     if (!companyId) {
-      return res.status(400).json({ 
+       res.status(400).json({ 
         success: false, 
         message: "No workspace found. Please ensure your admin has set up your workspace." 
       });
     }
 
     const inventory = await inventoryService.getInventory(companyId);
-    return res.json({ success: true, data: inventory });
+     res.json({ success: true, data: inventory });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
+     res.status(500).json({ success: false, message: error.message });
   }
 };

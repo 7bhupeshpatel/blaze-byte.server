@@ -44,7 +44,7 @@ export const updatePaymentStatus = async (req: any, res: Response) => {
     const { paymentStatus } = req.body; // "PAID" or "PENDING"
 
     if (!paymentStatus || !['PAID', 'PENDING', 'FAILED'].includes(paymentStatus)) {
-      return res.status(400).json({ success: false, message: "Invalid payment status provided." });
+       res.status(400).json({ success: false, message: "Invalid payment status provided." });
     }
 
     const updatedSale = await staffService.updatePaymentStatus(

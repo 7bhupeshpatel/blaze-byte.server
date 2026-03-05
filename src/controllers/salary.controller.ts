@@ -5,7 +5,7 @@ export const recordSalary = async (req: any, res: Response) => {
   try {
     // Only Admins managing a company can pay staff
     const companyId = req.user.managedCompany?.id;
-    if (!companyId) return res.status(400).json({ message: "Admin workspace not found." });
+    if (!companyId)  res.status(400).json({ message: "Admin workspace not found." });
 
     const salary = await salaryService.recordSalary(companyId, req.body);
     res.status(201).json({ success: true, data: salary });
@@ -17,7 +17,7 @@ export const recordSalary = async (req: any, res: Response) => {
 export const fetchSalaries = async (req: any, res: Response) => {
   try {
     const companyId = req.user.managedCompany?.id;
-    if (!companyId) return res.status(400).json({ message: "Admin workspace not found." });
+    if (!companyId)  res.status(400).json({ message: "Admin workspace not found." });
 
     const salaries = await salaryService.getCompanySalaries(companyId);
     res.json({ success: true, data: salaries });
