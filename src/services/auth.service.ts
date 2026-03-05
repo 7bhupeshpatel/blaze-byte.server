@@ -41,7 +41,9 @@ export const verifyAndActivate = async (email: string, otp: string) => {
 };
 
 export const loginUser = async (data: any) => {
-  const user = await prisma.user.findUnique({ where: { email: data.email } });
+  const user = await prisma.user.findUnique({ where: { email: data.email }, include: { 
+      managedCompany: true // <--- MUST include this to get the ID for Admins
+    } });
   if (!user || !user.isVerified) throw new Error("Invalid credentials or unverified account");
 
   const isMatch = await bcrypt.compare(data.password, user.password);
@@ -50,12 +52,12 @@ export const loginUser = async (data: any) => {
   if (!user.isActive) throw new Error("Account is suspended");
 
   const token = jwt.sign(
-    { id: user.id, role: user.role, companyId: user.companyId },
+    { id: user.id, role: user.role, companyId: user.managedCompany?.id || user.companyId },
     process.env.JWT_SECRET as string,
     { expiresIn: '1d' }
   );
 
-  return { token, user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId } };
+  return { token, user: { id: user.id, email: user.email, role: user.role, companyId: user.managedCompany?.id || user.companyId } };
 };
 
 

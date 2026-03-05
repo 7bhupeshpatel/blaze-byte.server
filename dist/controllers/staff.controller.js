@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMySales = exports.createSale = exports.getProductsForStaff = void 0;
+exports.updatePaymentStatus = exports.getMySales = exports.createSale = exports.getProductsForStaff = void 0;
 const staff_service_1 = require("../services/staff.service");
 const getProductsForStaff = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -41,4 +41,19 @@ const getMySales = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.getMySales = getMySales;
+const updatePaymentStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const saleId = req.params.id;
+        const { paymentStatus } = req.body;
+        if (!paymentStatus || !['PAID', 'PENDING', 'FAILED'].includes(paymentStatus)) {
+            return res.status(400).json({ success: false, message: "Invalid payment status provided." });
+        }
+        const updatedSale = yield staff_service_1.staffService.updatePaymentStatus(req.user.id, saleId, paymentStatus);
+        res.json({ success: true, data: updatedSale });
+    }
+    catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+exports.updatePaymentStatus = updatePaymentStatus;
 //# sourceMappingURL=staff.controller.js.map

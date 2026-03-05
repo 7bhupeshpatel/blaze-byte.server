@@ -51,7 +51,9 @@ export class OrderService {
         where: { id: saleId },
         data: {
           status: OrderStatus.CONFIRMED,
-          staffId
+          staffId,
+          // If a guest hasn't paid online yet, ensure status is PENDING
+          paymentStatus: sale.paymentMethod === 'ONLINE' ? 'PAID' : 'PENDING'
         },
         include: {
           items: { include: { product: true } }
@@ -94,4 +96,6 @@ static async updateStatus(saleId: string, status: OrderStatus) {
     });
   });
 }
+
+
 }

@@ -13,6 +13,19 @@ exports.OrderService = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class OrderService {
+    static getOrders(companyId, status) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return prisma.sale.findMany({
+                where: Object.assign({ companyId }, (status ? { status } : {})),
+                include: {
+                    items: {
+                        include: { product: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+        });
+    }
     static confirmOrder(saleId, staffId) {
         return __awaiter(this, void 0, void 0, function* () {
             const sale = yield prisma.sale.findUnique({
@@ -23,22 +36,53 @@ class OrderService {
                 throw new Error("Order not found");
             if (sale.status !== client_1.OrderStatus.PENDING)
                 throw new Error("Order is not pending");
-            return yield prisma.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            return prisma.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 for (const item of sale.items) {
-                    const product = yield tx.product.findUnique({ where: { id: item.productId } });
+                    const product = yield tx.product.findUnique({
+                        where: { id: item.productId }
+                    });
                     if (!product || (product.stock !== null && product.stock < item.quantity)) {
-                        throw new Error(`Stock unavailable for product ID: ${item.productId}`);
+                        throw new Error(`Insufficient stock for product ${item.productId}`);
                     }
                     yield tx.product.update({
                         where: { id: item.productId },
                         data: { stock: { decrement: item.quantity } }
                     });
                 }
-                return yield tx.sale.update({
+                return tx.sale.update({
                     where: { id: saleId },
                     data: {
                         status: client_1.OrderStatus.CONFIRMED,
-                        staffId: staffId
+                        staffId,
+                        paymentStatus: sale.paymentMethod === 'ONLINE' ? 'PAID' : 'PENDING'
+                    },
+                    include: {
+                        items: { include: { product: true } }
+                    }
+                });
+            }));
+        });
+    }
+    static updateStatus(saleId, status) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return prisma.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                const sale = yield tx.sale.findUnique({
+                    where: { id: saleId },
+                    include: { items: true }
+                });
+                if (!sale)
+                    throw new Error("Order not found");
+                if (status === client_1.OrderStatus.COMPLETED) {
+                    if (sale.status !== client_1.OrderStatus.PREPARING) {
+                        throw new Error("Only PREPARING orders can be completed");
+                    }
+                }
+                return tx.sale.update({
+                    where: { id: saleId },
+                    data: { status },
+                    include: {
+                        staff: { select: { id: true, email: true } },
+                        items: { include: { product: true } }
                     }
                 });
             }));

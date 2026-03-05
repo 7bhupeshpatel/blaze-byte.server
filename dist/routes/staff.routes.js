@@ -8,5 +8,6 @@ router.use(auth_middleware_1.verifyToken);
 router.get('/products', (0, auth_middleware_1.authorize)(['VISITOR']), staff_controller_1.getProductsForStaff);
 router.post('/sale', (0, auth_middleware_1.authorize)(['VISITOR']), staff_controller_1.createSale);
 router.get('/sales', (0, auth_middleware_1.authorize)(['VISITOR']), staff_controller_1.getMySales);
+router.patch('/sale/:id/payment-status', (0, auth_middleware_1.authorize)(['VISITOR']), staff_controller_1.updatePaymentStatus);
 exports.default = router;
 //# sourceMappingURL=staff.routes.js.map

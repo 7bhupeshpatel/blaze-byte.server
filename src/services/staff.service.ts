@@ -29,7 +29,8 @@ async createSale(
   items: { productId: string; quantity: number }[],
   customer?: { name?: string; phone?: string },
   discountPercent?: number,
-  paymentMethod?: "CASH" | "ONLINE"
+  paymentMethod?: "CASH" | "ONLINE",
+  paymentStatus: "PAID" | "PENDING" = "PAID"
 ) {
 
   const staff = await prisma.user.findUnique({
@@ -84,7 +85,7 @@ if (!["CASH", "ONLINE"].includes(method)) {
         customerName: customer?.name || null,
         customerPhone: customer?.phone || null,
         paymentMethod: method,   // ✅ NEW FIELD
-
+        paymentStatus: paymentStatus, // ✅ NEW FIELD
         items: {
         create: items.map(item => ({
           productId: item.productId,
@@ -100,14 +101,6 @@ if (!["CASH", "ONLINE"].includes(method)) {
     });
 
     for (const item of items) {
-
-      await tx.saleItem.create({
-        data: {
-          saleId: sale.id,
-          productId: item.productId,
-          quantity: item.quantity
-        }
-      });
 
       await tx.product.update({
         where: { id: item.productId },
@@ -146,6 +139,62 @@ return prisma.sale.findMany({
   orderBy: { createdAt: "desc" }
 });
 
+  },
+
+  // Add this inside your exported staffService object
+
+  /* ================================== */
+  /* ===== UPDATE PAYMENT STATUS ====== */
+  /* ================================== */
+
+  async updatePaymentStatus(userId: string, saleId: string, newStatus: "PAID" | "PENDING" | "FAILED") {
+    // 1. Verify staff exists and belongs to a company
+    const staff = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!staff || !staff.companyId) {
+      throw new Error("Unauthorized.");
+    }
+
+    // 2. Fetch the sale
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId }
+    });
+
+    if (!sale) {
+      throw new Error("Sale not found.");
+    }
+
+    // 3. Ensure staff belongs to the same company as the order
+    if (sale.companyId !== staff.companyId) {
+      throw new Error("Unauthorized to modify this order.");
+    }
+
+    // 4. Prevent unnecessary updates if the status is the same
+    if (sale.paymentStatus === newStatus) {
+      throw new Error(`Payment status is already ${newStatus}.`);
+    }
+
+    // 5. Enforce the maximum of 3 changes rule
+    if (sale.paymentUpdateCount >= 3) {
+      throw new Error("Maximum of 3 payment status changes allowed per order.");
+    }
+
+    // 6. Update the status and increment the counter
+    return prisma.sale.update({
+      where: { id: saleId },
+      data: {
+        paymentStatus: newStatus,
+        paymentUpdateCount: { increment: 1 } // ✅ Increment the counter
+      },
+      include: {
+        staff: { select: { id: true, email: true } },
+        items: { include: { product: true } }
+      }
+    });
   }
+
+  
 
 };

@@ -9,36 +9,33 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOrderStatus = exports.confirmOrder = exports.getPendingOrders = void 0;
+exports.updateOrderStatus = exports.confirmOrder = exports.getOrders = void 0;
 const order_service_1 = require("../services/order.service");
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-const getPendingOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const companyId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.companyId;
+        const status = req.query.status;
         if (!companyId) {
-            return res.status(401).json({ success: false, message: "No company associated with this user" });
+            return res.status(401).json({
+                success: false,
+                message: "No company associated"
+            });
         }
-        const orders = yield prisma.sale.findMany({
-            where: {
-                companyId: companyId,
-                status: client_1.OrderStatus.PENDING,
-            },
-            include: {
-                items: {
-                    include: { product: true }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
+        const orders = yield order_service_1.OrderService.getOrders(companyId, status);
+        return res.status(200).json({
+            success: true,
+            data: orders
         });
-        return res.status(200).json({ success: true, data: orders });
     }
     catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 });
-exports.getPendingOrders = getPendingOrders;
+exports.getOrders = getOrders;
 const confirmOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -46,15 +43,17 @@ const confirmOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const staffId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
         if (!staffId)
             return res.status(401).json({ message: "Unauthorized" });
-        const updatedOrder = yield order_service_1.OrderService.confirmOrder(saleId, staffId);
+        const updated = yield order_service_1.OrderService.confirmOrder(saleId, staffId);
         return res.status(200).json({
             success: true,
-            message: "Order confirmed and stock updated",
-            data: updatedOrder
+            data: updated
         });
     }
     catch (error) {
-        return res.status(400).json({ success: false, message: error.message });
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
 });
 exports.confirmOrder = confirmOrder;
@@ -62,14 +61,17 @@ const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, functi
     try {
         const saleId = req.params.saleId;
         const { status } = req.body;
-        const updatedOrder = yield prisma.sale.update({
-            where: { id: saleId },
-            data: { status: status }
+        const updated = yield order_service_1.OrderService.updateStatus(saleId, status);
+        return res.status(200).json({
+            success: true,
+            data: updated
         });
-        return res.status(200).json({ success: true, data: updatedOrder });
     }
     catch (error) {
-        return res.status(400).json({ success: false, message: error.message });
+        return res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
 });
 exports.updateOrderStatus = updateOrderStatus;

@@ -28,8 +28,8 @@ exports.staffService = {
             });
         });
     },
-    createSale(userId, items, customer, discountPercent, paymentMethod) {
-        return __awaiter(this, void 0, void 0, function* () {
+    createSale(userId_1, items_1, customer_1, discountPercent_1, paymentMethod_1) {
+        return __awaiter(this, arguments, void 0, function* (userId, items, customer, discountPercent, paymentMethod, isPaid = true) {
             const staff = yield db_config_1.default.user.findUnique({
                 where: { id: userId }
             });
@@ -71,6 +71,7 @@ exports.staffService = {
                         customerName: (customer === null || customer === void 0 ? void 0 : customer.name) || null,
                         customerPhone: (customer === null || customer === void 0 ? void 0 : customer.phone) || null,
                         paymentMethod: method,
+                        paymentStatus: isPaid ? 'PAID' : 'PENDING',
                         items: {
                             create: items.map(item => ({
                                 productId: item.productId,
@@ -120,6 +121,42 @@ exports.staffService = {
                     }
                 },
                 orderBy: { createdAt: "desc" }
+            });
+        });
+    },
+    updatePaymentStatus(userId, saleId, newStatus) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const staff = yield db_config_1.default.user.findUnique({
+                where: { id: userId }
+            });
+            if (!staff || !staff.companyId) {
+                throw new Error("Unauthorized.");
+            }
+            const sale = yield db_config_1.default.sale.findUnique({
+                where: { id: saleId }
+            });
+            if (!sale) {
+                throw new Error("Sale not found.");
+            }
+            if (sale.companyId !== staff.companyId) {
+                throw new Error("Unauthorized to modify this order.");
+            }
+            if (sale.paymentStatus === newStatus) {
+                throw new Error(`Payment status is already ${newStatus}.`);
+            }
+            if (sale.paymentUpdateCount >= 3) {
+                throw new Error("Maximum of 3 payment status changes allowed per order.");
+            }
+            return db_config_1.default.sale.update({
+                where: { id: saleId },
+                data: {
+                    paymentStatus: newStatus,
+                    paymentUpdateCount: { increment: 1 }
+                },
+                include: {
+                    staff: { select: { id: true, email: true } },
+                    items: { include: { product: true } }
+                }
             });
         });
     }

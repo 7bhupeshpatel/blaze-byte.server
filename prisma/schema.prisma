@@ -14,7 +14,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Roles as requested
+// --- ENUMS ---
 enum Role {
   SUPERADMIN
   ADMIN
@@ -25,6 +25,13 @@ enum Role {
 enum PaymentMethod {
   CASH
   ONLINE
+}
+
+// NEW: To handle unpaid orders and pending salaries
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
 }
 
 enum OrderStatus {
@@ -75,6 +82,9 @@ model User {
 
   guestOrders Sale[] @relation("GuestOrders")
 
+  // NEW: Link user to their salary records (Staff)
+  salaries        Salary[]
+
   // Industry grade tracking
   metadata  Json?    @default("{}") // Store flexible cafe/gaming data here
   createdAt DateTime @default(now())
@@ -94,6 +104,11 @@ model Company {
   sales     Sale[] // Direct link to sales/orders
   staff     User[] // Members of this workspace
   products  Product[] // Menu items for this company
+
+  // NEW: Links to track company expenses
+  inventories Inventory[]
+  salaries    Salary[]
+
   createdAt DateTime  @default(now())
 }
 
@@ -132,6 +147,9 @@ model Sale {
   status      OrderStatus @default(COMPLETED) // Default COMPLETED so existing staff POS logic doesn't break
   orderNumber String? // Friendly ID like "A-102" for the guest
 
+  // NEW: Payment Status for handling unpaid guest orders
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentUpdateCount  Int           @default(0) // ✅ Track changes
   totalAmount Float
 
   subtotalAmount  Float  @default(0) // Amount BEFORE discount
@@ -154,4 +172,51 @@ model SaleItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
+}
+
+
+// ==========================================
+// NEW: INVENTORY MODULE
+// ==========================================
+model Inventory {
+  id            String        @id @default(uuid())
+  name          String        // e.g., "Coffee Beans", "Milk"
+  category      String?       // e.g., "Dairy", "Raw Material"
+  quantity      Float         // Using float to allow 1.5 kg, etc.
+  unit          String        @default("units") // e.g., kg, liters, pcs
+  cost          Float         // Total cost of the purchase
+  supplier      String?       // Optional vendor name
+  
+  purchaseDate  DateTime      @default(now())
+  paymentMethod PaymentMethod @default(CASH)
+  
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id])
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// ==========================================
+// NEW: SALARY & EMPLOYEE PAYROLL MODULE
+// ==========================================
+model Salary {
+  id            String        @id @default(uuid())
+  amount        Float
+  month         Int           // 1 for Jan, 2 for Feb, etc.
+  year          Int           // e.g., 2024
+  
+  status        PaymentStatus @default(PAID)
+  paymentMethod PaymentMethod @default(CASH)
+  paymentDate   DateTime      @default(now())
+  notes         String?       // "Bonus included", "Advance", etc.
+  
+  userId        String        // The staff member being paid
+  user          User          @relation(fields: [userId], references: [id])
+  
+  companyId     String        // The company paying the salary
+  company       Company       @relation(fields: [companyId], references: [id])
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

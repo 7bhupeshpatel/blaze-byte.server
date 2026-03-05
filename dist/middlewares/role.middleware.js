@@ -3,7 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorize = void 0;
 const authorize = (roles) => {
     return (req, res, next) => {
+        console.log("User Role from Token:", req.user.role);
+        console.log("Required Roles:", roles);
         if (!req.user || !roles.includes(req.user.role)) {
+            console.log("❌ Role Mismatch!");
             res.status(403).json({
                 success: false,
                 message: "Access Denied: High clearance required."

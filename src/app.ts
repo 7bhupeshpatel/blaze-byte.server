@@ -9,6 +9,8 @@ import staffRoutes from './routes/staff.routes';
 import analyticsRoutes from './routes/analytics.routes'
 import guestRoutes from './routes/guest.routes';
 import orderRoutes from './routes/order.routes';
+import inventoryRoutes from './routes/inventory.routes';
+import salaryRoutes from './routes/salary.routes';
 
 const app: Application = express();
 
@@ -25,6 +27,8 @@ app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/guest', guestRoutes);
 app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/salary', salaryRoutes);
 // 3. Health Check (To see if server is alive)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });

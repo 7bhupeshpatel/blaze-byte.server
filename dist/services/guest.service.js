@@ -13,6 +13,22 @@ exports.GuestService = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class GuestService {
+    static getOrderStatus(orderId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const order = yield prisma.sale.findUnique({
+                where: { id: orderId },
+                select: {
+                    id: true,
+                    status: true
+                }
+            });
+            if (!order) {
+                throw new Error("Order not found");
+            }
+            return order;
+        });
+    }
+    ;
     static getMenu(companyId) {
         return __awaiter(this, void 0, void 0, function* () {
             const company = yield prisma.company.findUnique({
@@ -31,7 +47,7 @@ class GuestService {
             return company;
         });
     }
-    static placeOrder(companyId, items, customerName, customerPhone, guestId) {
+    static placeOrder(companyId, items, customerName, paymentMethod, customerPhone, guestId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!items || items.length === 0)
                 throw new Error("Cart is empty");
@@ -60,7 +76,7 @@ class GuestService {
                     orderNumber,
                     subtotalAmount: subtotal,
                     totalAmount: subtotal,
-                    paymentMethod: client_1.PaymentMethod.ONLINE,
+                    paymentMethod: paymentMethod,
                     customerName,
                     customerPhone: customerPhone !== null && customerPhone !== void 0 ? customerPhone : null,
                     items: {

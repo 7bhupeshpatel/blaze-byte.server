@@ -1,8 +1,13 @@
+import { PaymentMethod } from '@prisma/client';
 interface OrderItemInput {
     productId: string;
     quantity: number;
 }
 export declare class GuestService {
+    static getOrderStatus(orderId: string): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
+    }>;
     static getMenu(companyId: string): Promise<{
         name: string;
         id: string;
@@ -14,7 +19,7 @@ export declare class GuestService {
             stock: number | null;
         }[];
     }>;
-    static placeOrder(companyId: string, items: OrderItemInput[], customerName: string, customerPhone?: string, guestId?: string): Promise<{
+    static placeOrder(companyId: string, items: OrderItemInput[], customerName: string, paymentMethod: PaymentMethod, customerPhone?: string, guestId?: string): Promise<{
         items: ({
             product: {
                 name: string;
@@ -41,6 +46,8 @@ export declare class GuestService {
         guestId: string | null;
         status: import(".prisma/client").$Enums.OrderStatus;
         orderNumber: string | null;
+        paymentStatus: import(".prisma/client").$Enums.PaymentStatus;
+        paymentUpdateCount: number;
         totalAmount: number;
         subtotalAmount: number;
         discountPercent: number | null;

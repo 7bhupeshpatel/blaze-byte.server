@@ -5,5 +5,6 @@ const guest_controller_1 = require("../controllers/guest.controller");
 const router = (0, express_1.Router)();
 router.get('/:companyId/menu', guest_controller_1.getCompanyMenu);
 router.post('/:companyId/order', guest_controller_1.placeGuestOrder);
+router.get("/order/:orderId/status", guest_controller_1.getOrderStatus);
 exports.default = router;
 //# sourceMappingURL=guest.routes.js.map

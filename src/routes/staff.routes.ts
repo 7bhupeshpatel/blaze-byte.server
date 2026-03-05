@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   getProductsForStaff,
   createSale,
-  getMySales
+  getMySales,
+  updatePaymentStatus
 } from '../controllers/staff.controller';
 import { verifyToken, authorize } from '../middlewares/auth.middleware';
 
@@ -28,6 +29,12 @@ router.get(
   '/sales',
   authorize(['VISITOR']),
   getMySales
+);
+
+router.patch(
+  '/sale/:id/payment-status',
+  authorize(['VISITOR']),
+  updatePaymentStatus
 );
 
 export default router;
